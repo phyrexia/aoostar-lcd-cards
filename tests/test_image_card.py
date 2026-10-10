@@ -177,3 +177,18 @@ def test_example_images_render(tmp_path):
     for page in range(2):
         card.set_page(page)
         assert draw(card).size == (960, 376)
+
+
+def test_image_cards_keep_showing_without_collector_data(tmp_path, make_config):
+    from aoostar_lcd.renderer import Renderer
+
+    solid(tmp_path / "pic.png", BLUE)
+    config = make_config(
+        {"cards": [{"type": "cpu"}, {"type": "image", "path": "pic.png", "mode": "cover"}]}
+    )
+    renderer = Renderer(config)
+    config.cards[1].visit_pages()
+    config.cards[1].set_page(0)
+    assert renderer.frame(1, None, "state is 99 s old").getpixel((480, 188)) == BLUE
+    no_data = renderer.frame(0, None, "state is 99 s old")
+    assert no_data.getpixel((5, 5)) == config.theme.color("crit")

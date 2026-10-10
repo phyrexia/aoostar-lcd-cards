@@ -56,6 +56,9 @@ class Card:
     refresh: ClassVar[float] = 0.0
     #: True if the card paints the whole screen (no page dots on top).
     full_bleed: ClassVar[bool] = False
+    #: False if the card can be drawn without collector data (it then keeps showing
+    #: when the state file is stale, instead of the NO DATA screen).
+    needs_data: ClassVar[bool] = True
 
     def __init__(
         self,

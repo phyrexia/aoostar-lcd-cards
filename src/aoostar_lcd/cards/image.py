@@ -33,6 +33,7 @@ class ImageCard(Card):
     type_name = "image"
     title_key = None
     full_bleed = True
+    needs_data = False  # pictures keep rotating even when the collector is down
     defaults = {
         "path": None,  # image file or folder (relative paths: next to the config file)
         "mode": "contain",  # contain | cover | fit-width

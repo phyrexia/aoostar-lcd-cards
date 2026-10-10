@@ -48,7 +48,7 @@ class DisplayConfig:
 
 @dataclass
 class CollectorConfig:
-    interval: float = 5.0
+    interval: float = 2.0  # short enough to catch the peaks shown on the charts
     state_file: str = "/run/aoostar-lcd/state.json"
     history_file: str | None = None
     max_age: float = 30.0

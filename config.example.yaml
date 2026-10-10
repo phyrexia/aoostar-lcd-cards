@@ -18,7 +18,7 @@ display:
   png_dir: frames         # only for backend: png
 
 collector:
-  interval: 5             # seconds between measurements (1-60)
+  interval: 2             # seconds between measurements (1-60); shorter = finer peaks
   state_file: /run/aoostar-lcd/state.json         # written by `collect`, read by `display`
   history_file: /var/lib/aoostar-lcd/history.json # keeps the 3 h charts across restarts
   max_age: 30             # older state => the panel shows NO DATA

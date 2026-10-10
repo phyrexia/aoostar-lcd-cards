@@ -135,8 +135,14 @@ def histogram(
     value_labels: Sequence[tuple[float, str]] = (),
     empty_message: str | None = None,
     label_size: int = 22,
+    bar_colors: Sequence[RGB] | None = None,
+    peak_colors: Sequence[RGB] | None = None,
 ) -> None:
-    """Bars growing up from the bottom of ``box``; ``peaks`` drawn as a lighter cap."""
+    """Bars growing up from the bottom of ``box``; ``peaks`` drawn as a lighter cap.
+
+    ``bar_colors`` / ``peak_colors`` (one per bar) override ``color``, e.g. to color each bar
+    and each peak by its own threshold level.
+    """
     x0, y0, x1, y1 = box
     slots = max(len(values), 1)
     bar_w = (x1 - x0) / slots
@@ -149,8 +155,8 @@ def histogram(
     for frac in (1 / 3, 2 / 3):
         x = round(x0 + (x1 - x0) * frac)
         canvas.draw.line((x, y0, x, y1), fill=grid, width=1)
-    bar_color = canvas.color(color)
-    peak_color = blend(bar_color, canvas.color("background"), 0.45)
+    background = canvas.color("background")
+    default_color = canvas.color(color)
     if not any(v is not None for v in values) and empty_message:
         canvas.text(
             ((x0 + x1) / 2, (y0 + y1) / 2),
@@ -164,10 +170,22 @@ def histogram(
         if value is None or scale <= 0:
             continue
         left, right = _bar_x(x0, bar_w, i)
+        bar_color = (
+            bar_colors[i] if bar_colors is not None and i < len(bar_colors) else default_color
+        )
         peak = peaks[i] if peaks is not None and i < len(peaks) else None
         if peak is not None and peak > value:
             ph = min(height, round(peak / scale * height))
-            canvas.draw.rectangle((left, y1 - ph, right, y1), fill=peak_color)
+            canvas.draw.rectangle(
+                (left, y1 - ph, right, y1),
+                fill=blend(
+                    peak_colors[i]
+                    if peak_colors is not None and i < len(peak_colors)
+                    else bar_color,
+                    background,
+                    0.45,
+                ),
+            )
         h = min(height, max(2 if value > 0 else 0, round(value / scale * height)))
         if h > 0:
             canvas.draw.rectangle((left, y1 - h, right, y1), fill=bar_color)

@@ -131,9 +131,11 @@ class Renderer:
 
     def frame(self, index: int, snapshot: dict[str, Any] | None, reason: str = "") -> Image.Image:
         """Full frame for card ``index`` (or the NO DATA frame when snapshot is None)."""
-        if snapshot is None:
-            return self.no_data_frame(reason)
         card = self.cards[index]
+        if snapshot is None:
+            if card.needs_data:
+                return self.no_data_frame(reason)
+            snapshot = {"cards": {}}
         image = Image.new("RGB", (WIDTH, HEIGHT), self.theme.color("background"))
         msgs = self.alerts(snapshot)
         dots = self.config.page_dots and not card.full_bleed

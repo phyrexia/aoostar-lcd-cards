@@ -321,3 +321,27 @@ def test_png_sizes_with_custom_resolution(make_config):
     image = Renderer(config).frame(0, {"ts": 0, "cards": {"memory": config.cards[0].sample()}})
     assert image.size == (480, 188)
     assert isinstance(image, Image.Image)
+
+
+def test_cpu_chart_scale_and_level_colors(make_config):
+    from aoostar_lcd.cards.cpu import cpu_scale
+
+    cases = ([], [None, 5.0], [20.0], [21.0], [49.0], [60.0], [100.0])
+    assert [cpu_scale(v) for v in cases] == [20.0, 20.0, 20.0, 50.0, 50.0, 100.0, 100.0]
+    config = make_config({"cards": [{"type": "cpu", "history_minutes": 20, "bucket_seconds": 60}]})
+    hot = {
+        "percent": 95.0,
+        "history": {
+            "avg": [10.0] * 10 + [85.0] * 5 + [95.0] * 5,
+            "peak": [15.0] * 10 + [90.0] * 5 + [99.0] * 5,
+        },
+    }
+    image = Renderer(config).frame(0, {"ts": time.time(), "cards": {"cpu": hot}})
+    colors = {c for _, c in image.getcolors(maxcolors=1 << 20)}
+    theme = config.theme
+    assert {theme.color("ok"), theme.color("warn"), theme.color("crit")} <= colors
+    accent = make_config({"cards": [{"type": "cpu", "chart_colors": "accent"}]})
+    frame = Renderer(accent).frame(0, {"ts": time.time(), "cards": {"cpu": hot}})
+    assert accent.theme.color("accent") in {c for _, c in frame.getcolors(maxcolors=1 << 20)}
+    with pytest.raises(ConfigError, match="chart_colors"):
+        make_config({"cards": [{"type": "cpu", "chart_colors": "rainbow"}]})
