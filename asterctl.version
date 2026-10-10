@@ -1,0 +1,12 @@
+# asterctl (https://github.com/zehnm/aoostar-rs) pinned for this project.
+# License: MIT OR Apache-2.0, (c) 2025 Markus Zehnder. Not redistributed in this repository.
+# Single source of truth for scripts/install-asterctl.sh, the Dockerfile and CI.
+# The file is parsed, never executed: one KEY=VALUE per line, no spaces or quotes.
+#
+# To update: pick a new release tag, set the tag, the commit it points to and the SHA-256
+# of asterctl-<tag>-Linux-x64.tar.gz (compare with the release's asterctl.hash), then run
+# the CI job "asterctl pin" and tests/test_asterctl.py.
+ASTERCTL_REPO=https://github.com/zehnm/aoostar-rs
+ASTERCTL_TAG=v0.2.0
+ASTERCTL_COMMIT=078dc267d0b7a152feef8fdde304b880f64ee9fb
+ASTERCTL_LINUX_X64_SHA256=d29c1d9bdd4f8e762cf05fe3ab332aee932c5971d692f1c8440a0a4dd1cd4b5c

@@ -1,0 +1,4 @@
+# AOOSTAR front LCD (USB serial 0416:90a1): stable name /dev/aoostar-lcd and group dialout.
+# Install: cp udev/99-aoostar-lcd.rules /etc/udev/rules.d/ && udevadm control --reload \
+#          && udevadm trigger --subsystem-match=tty
+SUBSYSTEM=="tty", ATTRS{idVendor}=="0416", ATTRS{idProduct}=="90a1", SYMLINK+="aoostar-lcd", GROUP="dialout", MODE="0660"

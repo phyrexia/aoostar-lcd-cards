@@ -1,0 +1,28 @@
+# Single process on the machine that has the LCD: collect + render + send.
+# Install: see README, "systemd". Runs as root so that smartctl and zpool work;
+# if you do not use SMART or ZFS, uncomment User/Group to run unprivileged.
+[Unit]
+Description=AOOSTAR LCD status cards
+After=local-fs.target
+Wants=local-fs.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/aoostar-lcd run --config /etc/aoostar-lcd/config.yaml
+Restart=always
+RestartSec=10
+StateDirectory=aoostar-lcd
+StateDirectoryMode=0700
+#User=aoostar-lcd
+#Group=aoostar-lcd
+#SupplementaryGroups=dialout
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=yes
+ProtectKernelTunables=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+
+[Install]
+WantedBy=multi-user.target

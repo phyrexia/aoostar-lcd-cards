@@ -1,0 +1,29 @@
+# Split mode, host side: measure and write /run/aoostar-lcd/state.json every few seconds.
+# The display side (aoostar-lcd-display.service) runs where the LCD is: a Proxmox LXC,
+# a container or the same host. RuntimeDirectoryPreserve keeps the folder (and a bind
+# mount of it into a container) alive across restarts.
+[Unit]
+Description=AOOSTAR LCD status cards - collector
+After=local-fs.target
+Before=pve-guests.service
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/aoostar-lcd collect --config /etc/aoostar-lcd/config.yaml
+Restart=always
+RestartSec=5
+RuntimeDirectory=aoostar-lcd
+RuntimeDirectoryMode=0755
+RuntimeDirectoryPreserve=yes
+StateDirectory=aoostar-lcd
+StateDirectoryMode=0700
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=yes
+ProtectKernelTunables=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+
+[Install]
+WantedBy=multi-user.target

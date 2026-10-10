@@ -1,0 +1,21 @@
+# Split mode, display side: read the state file and drive the LCD through asterctl.
+# Needs no root: only read access to the state file and the dialout group for the
+# serial device. In a Proxmox LXC, /data is the host's /run/aoostar-lcd (read-only).
+[Unit]
+Description=AOOSTAR LCD status cards - display
+After=local-fs.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/aoostar-lcd display --config /etc/aoostar-lcd/config.yaml --state /data/state.json
+Restart=always
+RestartSec=10
+DynamicUser=yes
+SupplementaryGroups=dialout
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target

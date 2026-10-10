@@ -1,0 +1,48 @@
+# Example: everything in one container on the machine that has the LCD.
+#   cp config.example.yaml config.yaml   # edit it; keep display.device: /dev/ttyACM0
+#   docker compose up -d --build
+#
+# Inside a container the host metrics are partly hidden:
+#   * network: `network_mode: host` is needed to see the real NICs;
+#   * storage: mount what you want to measure (read-only) and point `mount:` at it,
+#     e.g. `- /:/hostfs:ro` and `{mount: /hostfs, label: System}`;
+#   * ZFS pools and SMART temperatures need host tools: run the collector on the host
+#     (see "Split mode" in the README) and use the `display` service below instead.
+services:
+  lcd:
+    build: .
+    image: aoostar-lcd-cards:local
+    restart: unless-stopped
+    network_mode: host
+    devices:
+      - /dev/ttyACM0:/dev/ttyACM0
+    group_add:
+      - dialout        # or the numeric GID that owns /dev/ttyACM0 on the host
+    volumes:
+      - ./config.yaml:/config/config.yaml:ro
+      - /:/hostfs:ro
+      - history:/var/lib/aoostar-lcd          # keeps the 3 h charts across restarts
+      # - ./images:/config/images:ro        # for `type: image`
+    environment:
+      AOOSTAR_LCD_LOG_LEVEL: INFO
+    command: ["run"]
+
+  # Split mode: the collector runs on the host (systemd unit aoostar-lcd-collector) and
+  # writes /run/aoostar-lcd/state.json; this container only draws and sends frames.
+  display:
+    profiles: ["split"]
+    build: .
+    image: aoostar-lcd-cards:local
+    restart: unless-stopped
+    network_mode: none
+    devices:
+      - /dev/ttyACM0:/dev/ttyACM0
+    group_add:
+      - dialout
+    volumes:
+      - ./config.yaml:/config/config.yaml:ro
+      - /run/aoostar-lcd:/data:ro
+    command: ["display", "--state", "/data/state.json"]
+
+volumes:
+  history:
