@@ -16,7 +16,7 @@ long; you can write your own. Frames are drawn in Python and sent to the panel w
 | ![Clock](docs/img/08-clock.png) | ![Your own image](docs/img/12-image-logo.png) |
 
 All screenshots are generated with synthetic data (`aoostar-lcd preview`). The full
-gallery is in [`docs/index.html`](docs/index.html).
+gallery is in [`docs/index.html`](docs/index.html), also online at <https://phyrexia.github.io/aoostar-lcd-cards/>.
 
 ## Features
 
@@ -51,7 +51,7 @@ gallery is in [`docs/index.html`](docs/index.html).
 
 ```sh
 python3 -m venv ~/.venvs/aoostar-lcd
-~/.venvs/aoostar-lcd/bin/pip install git+https://github.com/<you>/aoostar-lcd-cards   # or: pip install .
+~/.venvs/aoostar-lcd/bin/pip install git+https://github.com/phyrexia/aoostar-lcd-cards   # or: pip install .
 ~/.venvs/aoostar-lcd/bin/aoostar-lcd preview --out /tmp/cards            # demo cards, fake data
 ~/.venvs/aoostar-lcd/bin/aoostar-lcd preview -c config.yaml --out /tmp/cards --live   # your machine
 ```
@@ -61,7 +61,7 @@ python3 -m venv ~/.venvs/aoostar-lcd
 1. **asterctl** (see [asterctl](#asterctl) below):
 
    ```sh
-   git clone https://github.com/<you>/aoostar-lcd-cards && cd aoostar-lcd-cards
+   git clone https://github.com/phyrexia/aoostar-lcd-cards && cd aoostar-lcd-cards
    sudo scripts/install-asterctl.sh          # pinned release + SHA-256 check, or cargo build
    asterctl --version                        # asterctl 0.2.0
    ```
