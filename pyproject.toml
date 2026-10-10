@@ -1,0 +1,56 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aoostar-lcd-cards"
+version = "0.1.0"
+description = "Configurable rotating status cards for the AOOSTAR 960x376 USB LCD (WTR MAX, GEM12+ PRO), driven through asterctl."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE", "NOTICE", "src/aoostar_lcd/fonts/LICENSE-DejaVu.txt"]
+requires-python = ">=3.11"
+authors = [{ name = "aoostar-lcd-cards contributors" }]
+keywords = ["aoostar", "lcd", "nas", "homelab", "proxmox", "dashboard", "asterctl"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: System Administrators",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: System :: Monitoring",
+]
+dependencies = [
+    "Pillow>=10.1",
+    "PyYAML>=6.0",
+    "psutil>=5.9",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+    "ruff>=0.6",
+]
+
+[project.scripts]
+aoostar-lcd = "aoostar_lcd.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+aoostar_lcd = ["fonts/*.ttf", "fonts/LICENSE-DejaVu.txt"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "tests", "examples"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"

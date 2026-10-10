@@ -1,0 +1,20 @@
+name: Feature or new card
+description: Suggest an improvement or a new built-in card.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What would you like to see on the panel, and why?
+    validations:
+      required: true
+  - type: textarea
+    id: data
+    attributes:
+      label: Where does the data come from?
+      description: File, command, API... Many ideas already work with `type: custom` or a plugin card.
+  - type: textarea
+    id: sketch
+    attributes:
+      label: Layout sketch (optional)
+      description: A drawing or a mock-up at 960x376 px.

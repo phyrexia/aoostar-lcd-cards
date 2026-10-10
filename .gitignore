@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Local runtime files
+/config.yaml
+/frames/
+state.json
+history.json
+
+# Secrets never belong here
+.env
+.env.*
+*.pem
+*.key
+
+# Editors and OS
+.idea/
+.vscode/
+.DS_Store

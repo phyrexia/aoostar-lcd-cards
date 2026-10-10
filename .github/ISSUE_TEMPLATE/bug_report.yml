@@ -1,0 +1,58 @@
+name: Bug report
+description: Something does not work or looks wrong on the panel.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. Please remove host names, IP addresses and anything private
+        from logs and configuration before posting.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What did you expect, and what did you see instead? A photo or a PNG from `aoostar-lcd preview` helps.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: How to reproduce
+      placeholder: |
+        1. config.yaml (the relevant cards)
+        2. command you ran (run / collect / display / preview)
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: aoostar-lcd version
+      placeholder: "aoostar-lcd --version"
+    validations:
+      required: true
+  - type: input
+    id: asterctl
+    attributes:
+      label: asterctl version
+      placeholder: "asterctl --version"
+  - type: dropdown
+    id: setup
+    attributes:
+      label: How it runs
+      options:
+        - single process on the host (run)
+        - split mode, Proxmox LXC
+        - split mode, other
+        - Docker / Compose
+        - preview only (no hardware)
+  - type: input
+    id: hardware
+    attributes:
+      label: Hardware and OS
+      placeholder: "e.g. AOOSTAR WTR MAX, Proxmox VE 9 / Debian 13"
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: "`journalctl -u aoostar-lcd -n 100` or the container logs."
+      render: text
