@@ -14,8 +14,8 @@ Short record of the decisions behind aoostar-lcd-cards and why they were taken.
 - Prior art: `homefree-aoostar-lcd` (a psutil sampler feeding asterctl) confirms the
   "Python renders, asterctl transports" split. asterctl is also packaged in FreeBSD ports
   and nixpkgs. No other pure-Python driver for this panel was found.
-- The private deployment this project was extracted from (collector on a Proxmox host,
-  renderer in an LXC, 3-hour network histogram), which ran on an AOOSTAR WTR MAX.
+- A previous private deployment (separate collector and renderer, 3-hour network histogram)
+  on an AOOSTAR WTR MAX, whose card style this project generalizes.
 
 ## Architecture
 
