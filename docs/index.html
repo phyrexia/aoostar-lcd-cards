@@ -1,0 +1,493 @@
+<!doctype html>
+<html lang="en" data-lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>aoostar-lcd-cards</title>
+<meta name="description" content="Configurable status cards for the AOOSTAR 960x376 USB LCD, driven through asterctl.">
+<style>
+  :root {
+    --bg: #0b0d12;
+    --panel: #12151d;
+    --panel-2: #181c26;
+    --line: #262b38;
+    --text: #e8eaf0;
+    --muted: #a3a9b8;
+    --dim: #6b7285;
+    --rx: #46c8ff;
+    --tx: #ff8c28;
+    --accent: #9678ff;
+    --ok: #3ce66e;
+    --warn: #ffbe00;
+    --crit: #ff3c46;
+    --radius: 14px;
+    --mono: ui-monospace, "SF Mono", "JetBrains Mono", "DejaVu Sans Mono", Menlo, Consolas, monospace;
+    --sans: system-ui, -apple-system, "Segoe UI", "DejaVu Sans", Roboto, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.6 var(--sans);
+    -webkit-font-smoothing: antialiased;
+  }
+  html[data-lang="en"] [lang="es"], html[data-lang="es"] [lang="en"] { display: none !important; }
+  a { color: var(--rx); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .wrap { width: min(1180px, 100% - 32px); margin-inline: auto; }
+
+  /* top bar */
+  .top {
+    position: sticky; top: 0; z-index: 10;
+    background: color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--line);
+  }
+  .top .wrap { display: flex; align-items: center; gap: 20px; height: 58px; }
+  .brand { font-family: var(--mono); font-weight: 700; letter-spacing: .02em; color: var(--text); }
+  .brand b { color: var(--rx); }
+  .nav { display: flex; gap: 18px; margin-left: auto; font-size: 14px; }
+  .nav a { color: var(--muted); }
+  .nav a:hover { color: var(--text); text-decoration: none; }
+  .lang { display: flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
+  .lang button {
+    border: 0; background: transparent; color: var(--muted);
+    font: 600 12px var(--mono); padding: 6px 10px; cursor: pointer;
+  }
+  .lang button[aria-pressed="true"] { background: var(--panel-2); color: var(--text); }
+
+  /* hero */
+  .hero { padding: 64px 0 40px; display: grid; grid-template-columns: 1fr 1.25fr; gap: 48px; align-items: center; }
+  .eyebrow { font: 600 13px var(--mono); color: var(--accent); text-transform: uppercase; letter-spacing: .12em; }
+  h1 { font-size: clamp(34px, 5vw, 54px); line-height: 1.05; margin: 12px 0 18px; letter-spacing: -.02em; }
+  h1 .hl { background: linear-gradient(90deg, var(--rx), var(--accent) 55%, var(--tx)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .lead { color: var(--muted); font-size: 18px; max-width: 34em; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 22px; }
+  .chip {
+    font: 600 12px var(--mono); color: var(--muted);
+    border: 1px solid var(--line); background: var(--panel); border-radius: 999px; padding: 5px 11px;
+  }
+  .chip i { font-style: normal; color: var(--ok); }
+
+  /* the device */
+  .device {
+    position: relative; border-radius: 22px; padding: 18px 18px 30px;
+    background: linear-gradient(160deg, #2a2f3b, #13161d 55%, #0d0f14);
+    box-shadow: 0 30px 80px -30px rgba(70,200,255,.25), inset 0 1px 0 rgba(255,255,255,.08);
+  }
+  .device::after {
+    content: ""; position: absolute; left: 50%; bottom: 11px; width: 54px; height: 6px;
+    transform: translateX(-50%); border-radius: 3px; background: #0a0c10; box-shadow: inset 0 1px 1px rgba(0,0,0,.8);
+  }
+  .screen { position: relative; aspect-ratio: 960 / 376; border-radius: 6px; overflow: hidden; background: #000; box-shadow: 0 0 0 2px #05060a; }
+  .screen img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity .6s ease; }
+  .screen img.on { opacity: 1; }
+  .screen::after { content: ""; position: absolute; inset: 0; background: linear-gradient(115deg, rgba(255,255,255,.07), transparent 40%); pointer-events: none; }
+  .device-caption { margin-top: 12px; text-align: center; font: 12px var(--mono); color: var(--dim); }
+
+  section { padding: 56px 0; border-top: 1px solid var(--line); }
+  h2 { font-size: 30px; margin: 0 0 8px; letter-spacing: -.01em; }
+  .sub { color: var(--muted); margin: 0 0 28px; max-width: 46em; }
+
+  /* gallery */
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 20px; }
+  figure { margin: 0; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+  figure .shot { padding: 10px; background: linear-gradient(180deg, #1b1f29, #11141b); }
+  figure img { display: block; width: 100%; height: auto; border-radius: 4px; aspect-ratio: 960 / 376; background: #000; }
+  figcaption { padding: 12px 16px 16px; }
+  figcaption code.type { font: 700 13px var(--mono); color: var(--rx); }
+  figcaption p { margin: 6px 0 0; color: var(--muted); font-size: 14px; }
+  .tag { display: inline-block; margin-left: 6px; font: 600 11px var(--mono); color: var(--accent); border: 1px solid #3a3160; border-radius: 6px; padding: 1px 6px; vertical-align: 1px; }
+
+  /* architecture */
+  .arch { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 24px; overflow-x: auto; }
+  .arch svg { display: block; min-width: 760px; width: 100%; height: auto; }
+  .points { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 20px; }
+  .point { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; }
+  .point h3 { margin: 0 0 6px; font-size: 16px; }
+  .point p { margin: 0; color: var(--muted); font-size: 14px; }
+
+  /* code */
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
+  pre {
+    margin: 0; background: #0f1218; border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 18px 20px; overflow-x: auto; font: 13.5px/1.55 var(--mono); color: #d7dbe5;
+  }
+  .k { color: var(--rx); } .s { color: #b5e98a; } .c { color: var(--dim); } .n { color: var(--tx); } .f { color: var(--accent); }
+  .label { font: 600 12px var(--mono); color: var(--dim); text-transform: uppercase; letter-spacing: .1em; margin: 0 0 8px; }
+  .note {
+    margin-top: 20px; padding: 14px 18px; border-radius: var(--radius);
+    background: rgba(255,190,0,.07); border: 1px solid rgba(255,190,0,.3); color: #f3dfa6; font-size: 14px;
+  }
+
+  /* install tabs */
+  .tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+  .tabs button {
+    font: 600 13px var(--sans); color: var(--muted); background: var(--panel); border: 1px solid var(--line);
+    border-radius: 999px; padding: 8px 16px; cursor: pointer;
+  }
+  .tabs button[aria-selected="true"] { color: var(--text); border-color: var(--rx); background: #0f2430; }
+  .panel[hidden] { display: none; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--dim); font: 600 12px var(--mono); text-transform: uppercase; letter-spacing: .08em; }
+  td code, p code, li code { font: 13px var(--mono); color: #d7dbe5; background: #1a1e28; padding: 1px 6px; border-radius: 5px; word-break: break-word; }
+  .tablebox { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 6px 10px; overflow-x: auto; }
+
+  footer { border-top: 1px solid var(--line); padding: 32px 0 48px; color: var(--dim); font-size: 13px; }
+
+  @media (max-width: 900px) {
+    .hero { grid-template-columns: 1fr; padding-top: 40px; }
+    .two, .points { grid-template-columns: 1fr; }
+    .nav { display: none; }
+  }
+  @media (max-width: 420px) {
+    .grid { grid-template-columns: 1fr; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .screen img { transition: none; }
+    html { scroll-behavior: auto; }
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <span class="brand">aoostar-lcd-<b>cards</b></span>
+    <nav class="nav">
+      <a href="#gallery"><span lang="en">Gallery</span><span lang="es">Galería</span></a>
+      <a href="#how"><span lang="en">How it works</span><span lang="es">Cómo funciona</span></a>
+      <a href="#config"><span lang="en">Configure</span><span lang="es">Configurar</span></a>
+      <a href="#own"><span lang="en">Your cards</span><span lang="es">Tus tarjetas</span></a>
+      <a href="#install"><span lang="en">Install</span><span lang="es">Instalar</span></a>
+      <a href="#asterctl">asterctl</a>
+    </nav>
+    <div class="lang" role="group" aria-label="Language">
+      <button type="button" data-set-lang="en" aria-pressed="true">EN</button>
+      <button type="button" data-set-lang="es" aria-pressed="false">ES</button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="hero">
+    <div>
+      <div class="eyebrow">AOOSTAR · 960×376 USB LCD</div>
+      <h1><span lang="en">Your NAS front panel, <span class="hl">your cards.</span></span><span lang="es">El panel de tu NAS, <span class="hl">tus tarjetas.</span></span></h1>
+      <p class="lead">
+        <span lang="en">Rotating status cards for the front LCD of AOOSTAR mini PCs and NAS boxes. Pick which cards appear, in which order and for how long, from one YAML file, or write your own in a few lines of Python. Frames are drawn with Pillow and sent through <a href="https://github.com/zehnm/aoostar-rs">asterctl</a>.</span>
+        <span lang="es">Tarjetas de estado que rotan en la LCD frontal de los mini PC y NAS AOOSTAR. Eliges qué tarjetas aparecen, en qué orden y cuánto duran desde un solo archivo YAML, o escribes las tuyas con pocas líneas de Python. Los cuadros se dibujan con Pillow y se envían con <a href="https://github.com/zehnm/aoostar-rs">asterctl</a>.</span>
+      </p>
+      <div class="chips">
+        <span class="chip"><i>●</i> MIT</span>
+        <span class="chip">Python 3.11+</span>
+        <span class="chip">asterctl v0.2.0 <span lang="en">pinned</span><span lang="es">fijado</span></span>
+        <span class="chip"><span lang="en">preview without hardware</span><span lang="es">vista previa sin hardware</span></span>
+        <span class="chip">Proxmox LXC · Docker · systemd</span>
+      </div>
+    </div>
+    <div>
+      <div class="device" aria-label="Simulated panel">
+        <div class="screen" id="screen">
+          <img class="on" src="img/03-network.png" alt="Network card">
+          <img src="img/01-cpu.png" alt="CPU card">
+          <img src="img/02-memory.png" alt="Memory card">
+          <img src="img/05-temperature.png" alt="Temperature card">
+          <img src="img/07-storage-rows.png" alt="Storage card">
+          <img src="img/08-clock.png" alt="Clock card">
+          <img src="img/13-image-cover.png" alt="Image card">
+        </div>
+      </div>
+      <div class="device-caption"><span lang="en">Rotation preview, synthetic data. The real panel shows each card for its configured duration.</span><span lang="es">Vista previa de la rotación con datos sintéticos. La pantalla real muestra cada tarjeta durante el tiempo configurado.</span></div>
+    </div>
+  </div>
+
+  <section id="gallery">
+    <h2><span lang="en">Gallery</span><span lang="es">Galería</span></h2>
+    <p class="sub"><span lang="en">Every built-in card, rendered by <code>aoostar-lcd preview</code> with synthetic data at the panel's native 960×376.</span><span lang="es">Todas las tarjetas incluidas, generadas con <code>aoostar-lcd preview</code> y datos sintéticos a la resolución nativa de 960×376.</span></p>
+    <div class="grid">
+      <figure><div class="shot"><img loading="lazy" src="img/01-cpu.png" alt="cpu"></div><figcaption><code class="type">cpu</code><p><span lang="en">Load, temperature and a 3-hour history: bars are 5-minute averages, the lighter caps their peaks.</span><span lang="es">Carga, temperatura e historial de 3 horas: las barras son promedios de 5 minutos y la parte clara, sus picos.</span></p></figcaption></figure>
+      <figure><div class="shot"><img loading="lazy" src="img/02-memory.png" alt="memory"></div><figcaption><code class="type">memory</code><p><span lang="en">Used / total RAM in GiB or GB, with ZFS ARC and swap when present.</span><span lang="es">RAM usada / total en GiB o GB, con ARC de ZFS y swap si existen.</span></p></figcaption></figure>
+      <figure><div class="shot"><img loading="lazy" src="img/03-network.png" alt="network"></div><figcaption><code class="type">network</code><p><span lang="en">Inbound up, outbound down, 3 hours, every NIC summed. Mbit/s or MB/s; scale in 1-2-5 steps.</span><span lang="es">Entrante arriba, saliente abajo, 3 horas, todas las NIC sumadas. Mbit/s o MB/s; escala en pasos 1-2-5.</span></p></figcaption></figure>
+      <figure><div class="shot"><img loading="lazy" src="img/04-network-split.png" alt="network split"></div><figcaption><code class="type">network</code><span class="tag">mode: split</span><p><span lang="en">One small chart per interface (up to four), each with its own scale and label.</span><span lang="es">Un gráfico por interfaz (hasta cuatro), cada uno con su escala y su etiqueta.</span></p></figcaption></figure>
+      <figure><div class="shot"><img loading="lazy" src="img/05-temperature.png" alt="temperature"></div><figcaption><code class="type">temperature</code><p><span lang="en">Up to six readings from hwmon chips, SMART (without waking sleeping disks) or files, colored by thresholds.</span><span lang="es">Hasta seis lecturas de sensores hwmon, SMART (sin despertar discos dormidos) o archivos, con colores según umbrales.</span></p></figcaption></figure>
+      <figure><div class="shot"><img loading="lazy" src="img/06-storage.png" alt="storage"></div><figcaption><code class="type">storage</code><span class="tag">1 volume</span><p><span lang="en">A ZFS pool or a mount point: free space, used, percentage and pool health.</span><span lang="es">Un pool ZFS o un punto de montaje: espacio libre, usado, porcentaje y salud del pool.</span></p></figcaption></figure>
+      <figure><div class="shot"><img loading="lazy" src="img/07-storage-rows.png" alt="storage rows"></div><figcaption><code class="type">storage</code><span class="tag">2-4 volumes</span><p><span lang="en">Several volumes as rows. A pool that is not ONLINE raises a red banner on every card.</span><span lang="es">Varios volúmenes en filas. Un pool que no está ONLINE muestra una franja roja en todas las tarjetas.</span></p></figcaption></figure>
+      <figure><div class="shot"><img loading="lazy" src="img/08-clock.png" alt="clock"></div><figcaption><code class="type">clock</code><p><span lang="en">Time and date (any strftime format, any time zone), host name and uptime.</span><span lang="es">Hora y fecha (cualquier formato strftime y zona horaria), nombre del equipo y tiempo encendido.</span></p></figcaption></figure>
+      <figure><div class="shot"><img loading="lazy" src="img/09-uptime.png" alt="uptime"></div><figcaption><code class="type">uptime</code><p><span lang="en">Time since boot and load averages, colored per CPU core.</span><span lang="es">Tiempo desde el arranque y carga promedio, con color según los núcleos.</span></p></figcaption></figure>
+      <figure><div class="shot"><img loading="lazy" src="img/10-custom.png" alt="custom"></div><figcaption><code class="type">custom</code><p><span lang="en">Whatever a command prints (JSON or text): value, unit, status color, bar and lines.</span><span lang="es">Lo que imprima un comando (JSON o texto): valor, unidad, color de estado, barra y líneas.</span></p></figcaption></figure>
+      <figure><div class="shot"><img loading="lazy" src="img/11-custom-fields.png" alt="custom fields"></div><figcaption><code class="type">custom</code><span class="tag">fields</span><p><span lang="en">Pick values from any JSON file by dotted path, with units and thresholds.</span><span lang="es">Toma valores de cualquier JSON por ruta con puntos, con unidades y umbrales.</span></p></figcaption></figure>
+      <figure><div class="shot"><img loading="lazy" src="img/12-image-logo.png" alt="image logo"></div><figcaption><code class="type">image</code><span class="tag">contain</span><p><span lang="en">Your logo; transparency is composed over the background color you choose.</span><span lang="es">Tu logo; la transparencia se combina con el color de fondo que elijas.</span></p></figcaption></figure>
+      <figure><div class="shot"><img loading="lazy" src="img/13-image-cover.png" alt="image cover"></div><figcaption><code class="type">image</code><span class="tag">cover</span><p><span lang="en">A folder of pictures, re-read on every pass so you can drop files in at any time.</span><span lang="es">Una carpeta de imágenes que se relee en cada vuelta, para agregar archivos en cualquier momento.</span></p></figcaption></figure>
+      <figure><div class="shot"><img loading="lazy" src="img/14-plugin-top.png" alt="plugin"></div><figcaption><code class="type">plugin</code><span class="tag">examples/</span><p><span lang="en">A Python card from <code>examples/plugins/top_processes.py</code>: top processes by CPU.</span><span lang="es">Una tarjeta en Python de <code>examples/plugins/top_processes.py</code>: procesos que más CPU usan.</span></p></figcaption></figure>
+      <figure><div class="shot"><img loading="lazy" src="img/es-light/02-network.png" alt="network, Spanish, light theme"></div><figcaption><code class="type">theme: light</code><span class="tag">language: es</span><p><span lang="en">Light preset and Spanish labels; every color can be overridden.</span><span lang="es">Tema claro y textos en español; cualquier color se puede cambiar.</span></p></figcaption></figure>
+      <figure><div class="shot"><img loading="lazy" src="img/no-data.png" alt="no data"></div><figcaption><code class="type">NO DATA</code><p><span lang="en">Shown when metrics stop arriving, so the panel never displays stale numbers.</span><span lang="es">Aparece cuando dejan de llegar métricas, para que la pantalla nunca muestre datos viejos.</span></p></figcaption></figure>
+    </div>
+  </section>
+
+  <section id="how">
+    <h2><span lang="en">How it works</span><span lang="es">Cómo funciona</span></h2>
+    <p class="sub"><span lang="en">A collector measures, a renderer draws, asterctl talks to the panel. Run them together, or split them between a host and a container.</span><span lang="es">Un colector mide, un renderizador dibuja y asterctl habla con la pantalla. Corren juntos o separados entre un host y un contenedor.</span></p>
+    <div class="arch">
+      <svg viewBox="0 0 940 230" role="img" aria-label="collector writes state.json, renderer reads it and calls asterctl, which drives the LCD">
+        <defs>
+          <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#6b7285"/></marker>
+        </defs>
+        <g font-family="ui-monospace, DejaVu Sans Mono, monospace" font-size="13">
+          <rect x="10" y="40" width="200" height="110" rx="12" fill="#181c26" stroke="#46c8ff"/>
+          <text x="110" y="70" text-anchor="middle" fill="#e8eaf0" font-weight="700">collector</text>
+          <text x="110" y="94" text-anchor="middle" fill="#a3a9b8">card.collect()</text>
+          <text x="110" y="114" text-anchor="middle" fill="#a3a9b8">psutil · /sys · zfs</text>
+          <text x="110" y="134" text-anchor="middle" fill="#a3a9b8">smartctl · commands</text>
+
+          <rect x="270" y="65" width="150" height="60" rx="10" fill="#0f1218" stroke="#3a3160" stroke-dasharray="4 4"/>
+          <text x="345" y="92" text-anchor="middle" fill="#9678ff" font-weight="700">state.json</text>
+          <text x="345" y="111" text-anchor="middle" fill="#6b7285">atomic write</text>
+
+          <rect x="480" y="40" width="220" height="110" rx="12" fill="#181c26" stroke="#9678ff"/>
+          <text x="590" y="70" text-anchor="middle" fill="#e8eaf0" font-weight="700">renderer</text>
+          <text x="590" y="94" text-anchor="middle" fill="#a3a9b8">rotation · banner</text>
+          <text x="590" y="114" text-anchor="middle" fill="#a3a9b8">card.render(canvas,…)</text>
+          <text x="590" y="134" text-anchor="middle" fill="#a3a9b8">960×376 PNG</text>
+
+          <rect x="750" y="65" width="80" height="60" rx="10" fill="#181c26" stroke="#ff8c28"/>
+          <text x="790" y="99" text-anchor="middle" fill="#e8eaf0" font-weight="700">asterctl</text>
+
+          <rect x="860" y="72" width="70" height="46" rx="6" fill="#000" stroke="#a3a9b8"/>
+          <text x="895" y="100" text-anchor="middle" fill="#46c8ff" font-weight="700">LCD</text>
+
+          <line x1="210" y1="95" x2="266" y2="95" stroke="#6b7285" stroke-width="2" marker-end="url(#arrow)"/>
+          <line x1="420" y1="95" x2="476" y2="95" stroke="#6b7285" stroke-width="2" marker-end="url(#arrow)"/>
+          <line x1="700" y1="95" x2="746" y2="95" stroke="#6b7285" stroke-width="2" marker-end="url(#arrow)"/>
+          <line x1="830" y1="95" x2="856" y2="95" stroke="#6b7285" stroke-width="2" marker-end="url(#arrow)"/>
+
+          <path d="M10,180 L10,192 L700,192 L700,180" fill="none" stroke="#3ce66e" stroke-width="1.5"/>
+          <text x="355" y="214" text-anchor="middle" fill="#3ce66e">aoostar-lcd run: one process, no file needed</text>
+          <path d="M10,28 L10,16 L420,16 L420,28" fill="none" stroke="#46c8ff" stroke-width="1.5"/>
+          <text x="215" y="11" text-anchor="middle" fill="#46c8ff" font-size="12">host: aoostar-lcd collect</text>
+          <path d="M480,28 L480,16 L930,16 L930,28" fill="none" stroke="#ff8c28" stroke-width="1.5"/>
+          <text x="705" y="11" text-anchor="middle" fill="#ff8c28" font-size="12">LXC / container: aoostar-lcd display</text>
+        </g>
+      </svg>
+    </div>
+    <div class="points">
+      <div class="point"><h3><span lang="en">Split for Proxmox</span><span lang="es">Separado para Proxmox</span></h3><p><span lang="en">The host sees every NIC, pool and disk; an unprivileged LXC only needs the serial device and a read-only bind mount.</span><span lang="es">El host ve todas las NIC, pools y discos; un LXC sin privilegios solo necesita el dispositivo serie y un montaje de solo lectura.</span></p></div>
+      <div class="point"><h3><span lang="en">Never stale</span><span lang="es">Nunca datos viejos</span></h3><p><span lang="en">The state has a timestamp; if it gets too old the panel says NO DATA. History survives restarts.</span><span lang="es">El estado lleva marca de tiempo; si envejece la pantalla dice SIN DATOS. El historial sobrevive a los reinicios.</span></p></div>
+      <div class="point"><h3><span lang="en">Gentle on the panel</span><span lang="es">Cuida la pantalla</span></h3><p><span lang="en">A frame is sent only when it changed; failures are retried on the next interval, never in a tight loop.</span><span lang="es">Solo se envía un cuadro si cambió; un fallo se reintenta en el siguiente intervalo, nunca en un bucle apretado.</span></p></div>
+    </div>
+  </section>
+
+  <section id="config">
+    <h2><span lang="en">Configure</span><span lang="es">Configurar</span></h2>
+    <p class="sub"><span lang="en">One YAML file. Order is rotation order; each card has a duration and its own options. Mistakes are reported with the exact key and a suggestion.</span><span lang="es">Un archivo YAML. El orden es el de la rotación; cada tarjeta tiene su duración y sus opciones. Los errores indican la clave exacta y una sugerencia.</span></p>
+    <div class="two">
+      <div>
+        <p class="label">config.yaml</p>
+<pre><span class="k">language</span>: <span class="s">en</span>              <span class="c"># en | es</span>
+<span class="k">display</span>:
+  <span class="k">device</span>: <span class="s">/dev/ttyACM0</span>
+<span class="k">rotation</span>:
+  <span class="k">default_duration</span>: <span class="n">8</span>
+<span class="k">theme</span>:
+  <span class="k">preset</span>: <span class="s">dark</span>             <span class="c"># dark | light, any color</span>
+<span class="k">cards</span>:
+  - <span class="k">type</span>: <span class="s">cpu</span>
+    <span class="k">temperature_chip</span>: <span class="s">k10temp</span>
+  - <span class="k">type</span>: <span class="s">network</span>
+    <span class="k">interfaces</span>: [<span class="s">enp1s0</span>, <span class="s">enp2s0</span>]
+    <span class="k">units</span>: <span class="s">bits</span>              <span class="c"># Mbit/s | bytes = MB/s</span>
+    <span class="k">mode</span>: <span class="s">aggregate</span>          <span class="c"># or split</span>
+  - <span class="k">type</span>: <span class="s">storage</span>
+    <span class="k">units</span>: <span class="s">si</span>                <span class="c"># TB | iec = TiB</span>
+    <span class="k">volumes</span>:
+      - {<span class="k">zfs</span>: <span class="s">tank</span>, <span class="k">label</span>: <span class="s">Data</span>}
+      - {<span class="k">mount</span>: <span class="s">/</span>, <span class="k">label</span>: <span class="s">System</span>}
+  - <span class="k">type</span>: <span class="s">clock</span>
+    <span class="k">duration</span>: <span class="n">5</span>
+  - <span class="k">type</span>: <span class="s">image</span>
+    <span class="k">path</span>: <span class="s">/etc/aoostar-lcd/images</span>
+    <span class="k">enabled</span>: <span class="n">false</span></pre>
+      </div>
+      <div>
+        <p class="label"><span lang="en">validation</span><span lang="es">validación</span></p>
+<pre><span class="c">$</span> aoostar-lcd check -c config.yaml
+<span class="n">aoostar-lcd: configuration error:</span>
+cards[1] (network): unknown option 'interface'.
+Did you mean "interfaces"? Allowed: bucket_seconds,
+exclude, history_minutes, interfaces, labels, ...
+
+<span class="c">$</span> aoostar-lcd check -c config.yaml
+config: config.yaml (OK)
+  [on ] cpu        cpu       8 s  refresh 0 s
+  [on ] network    network   8 s  refresh 0 s
+  [on ] storage    storage   8 s  refresh 30 s
+  [on ] clock      clock     5 s  refresh 60 s
+  [off] image      image     8 s  refresh 0 s
+asterctl: /usr/local/bin/asterctl version 0.2.0</pre>
+        <p class="label" style="margin-top:20px"><span lang="en">preview, no hardware</span><span lang="es">vista previa, sin hardware</span></p>
+<pre><span class="c">$</span> aoostar-lcd preview -c config.yaml --out /tmp/cards
+<span class="c">$</span> aoostar-lcd preview -c config.yaml --out /tmp/cards --live</pre>
+      </div>
+    </div>
+  </section>
+
+  <section id="own">
+    <h2><span lang="en">Your own cards and pictures</span><span lang="es">Tarjetas e imágenes propias</span></h2>
+    <p class="sub"><span lang="en">From no code to full control: a command, a picture, or a small Python class loaded from the YAML.</span><span lang="es">De cero código a control total: un comando, una imagen o una pequeña clase de Python que se carga desde el YAML.</span></p>
+    <div class="two">
+      <div>
+        <p class="label">hello_card.py</p>
+<pre><span class="k">from</span> aoostar_lcd <span class="k">import</span> Card
+
+
+<span class="k">class</span> <span class="f">HelloCard</span>(Card):
+    type_name = <span class="s">"hello"</span>
+    defaults = {<span class="s">"greeting"</span>: <span class="s">"Hello"</span>}
+
+    <span class="k">def</span> <span class="f">collect</span>(self):            <span class="c"># on the host</span>
+        <span class="k">import</span> os
+        <span class="k">return</span> {<span class="s">"processes"</span>: len(os.listdir(<span class="s">"/proc"</span>))}
+
+    <span class="k">def</span> <span class="f">render</span>(self, canvas, theme, data):   <span class="c"># next to the LCD</span>
+        canvas.title(<span class="s">"HELLO"</span>)
+        canvas.text((canvas.left, canvas.top + <span class="n">170</span>),
+                    self.options[<span class="s">"greeting"</span>] + <span class="s">"!"</span>, size=<span class="n">90</span>, anchor=<span class="s">"ls"</span>)</pre>
+      </div>
+      <div>
+        <p class="label">config.yaml</p>
+<pre>- <span class="k">type</span>: <span class="s">plugin</span>
+  <span class="k">plugin</span>: <span class="s">plugins/hello_card.py:HelloCard</span>
+  <span class="k">greeting</span>: <span class="s">Hi</span>
+
+- <span class="k">type</span>: <span class="s">custom</span>                 <span class="c"># no Python at all</span>
+  <span class="k">title</span>: <span class="s">BACKUPS</span>
+  <span class="k">command</span>: [<span class="s">/usr/local/bin/backup-status</span>, <span class="s">--json</span>]
+  <span class="k">refresh</span>: <span class="n">60</span>
+
+- <span class="k">type</span>: <span class="s">image</span>                  <span class="c"># png, jpg, webp, gif</span>
+  <span class="k">path</span>: <span class="s">/etc/aoostar-lcd/images</span>
+  <span class="k">mode</span>: <span class="s">contain</span>                <span class="c"># cover | fit-width</span>
+  <span class="k">background</span>: <span class="s">"#101218"</span></pre>
+        <div class="note"><span lang="en"><strong>Image rights.</strong> Only display pictures you are allowed to use. The project ships no third-party artwork; the example logo and landscape were generated for it with Pillow.</span><span lang="es"><strong>Derechos de las imágenes.</strong> Muestra solo imágenes que tengas derecho a usar. El proyecto no incluye arte de terceros; el logo y el paisaje de ejemplo se generaron para él con Pillow.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="install">
+    <h2><span lang="en">Install</span><span lang="es">Instalar</span></h2>
+    <p class="sub"><span lang="en">Three ways to run it. asterctl is installed at the pinned version in all of them.</span><span lang="es">Tres formas de correrlo. En todas se instala asterctl en la versión fijada.</span></p>
+    <div class="tabs" role="tablist">
+      <button type="button" role="tab" aria-selected="true" data-tab="host"><span lang="en">Host (one process)</span><span lang="es">Host (un proceso)</span></button>
+      <button type="button" role="tab" aria-selected="false" data-tab="lxc">Proxmox LXC</button>
+      <button type="button" role="tab" aria-selected="false" data-tab="docker">Docker</button>
+    </div>
+    <div class="panel" data-panel="host">
+<pre><span class="c"># asterctl: pinned release, SHA-256 checked (or --from source = cargo build)</span>
+sudo scripts/install-asterctl.sh
+<span class="c"># the package, in its own virtual environment</span>
+sudo python3 -m venv /opt/aoostar-lcd
+sudo /opt/aoostar-lcd/bin/pip install .
+sudo ln -sf /opt/aoostar-lcd/bin/aoostar-lcd /usr/local/bin/aoostar-lcd
+<span class="c"># configuration and service</span>
+sudo install -d /etc/aoostar-lcd &amp;&amp; sudo cp config.example.yaml /etc/aoostar-lcd/config.yaml
+sudo aoostar-lcd check -c /etc/aoostar-lcd/config.yaml
+sudo cp systemd/aoostar-lcd.service /etc/systemd/system/
+sudo systemctl daemon-reload &amp;&amp; sudo systemctl enable --now aoostar-lcd</pre>
+    </div>
+    <div class="panel" data-panel="lxc" hidden>
+<pre><span class="c"># on the Proxmox host: the collector writes /run/aoostar-lcd/state.json</span>
+sudo cp systemd/aoostar-lcd-collector.service /etc/systemd/system/
+sudo systemctl enable --now aoostar-lcd-collector
+
+<span class="c"># /etc/pve/lxc/&lt;id&gt;.conf (Proxmox VE 8.1+)</span>
+dev0: /dev/ttyACM0,gid=20,mode=0660
+mp0: /run/aoostar-lcd,mp=/data,ro=1
+
+<span class="c"># inside the container: asterctl + package, then</span>
+cp systemd/aoostar-lcd-display.service /etc/systemd/system/
+systemctl enable --now aoostar-lcd-display     <span class="c"># reads /data/state.json, no root</span></pre>
+    </div>
+    <div class="panel" data-panel="docker" hidden>
+<pre>cp config.example.yaml config.yaml          <span class="c"># keep display.device: /dev/ttyACM0</span>
+docker compose up -d --build                <span class="c"># builds asterctl from the pinned commit</span>
+
+<span class="c"># or prebuilt asterctl (x86_64)</span>
+docker build --build-arg ASTERCTL_SOURCE=release -t aoostar-lcd .
+docker run -d --device /dev/ttyACM0 --group-add dialout --network host \
+  -v ./config.yaml:/config/config.yaml:ro aoostar-lcd</pre>
+    </div>
+  </section>
+
+  <section id="asterctl">
+    <h2>asterctl <span lang="en">and licenses</span><span lang="es">y licencias</span></h2>
+    <p class="sub"><span lang="en"><a href="https://github.com/zehnm/aoostar-rs">asterctl</a>, by Markus Zehnder, speaks the panel's reverse-engineered protocol. It is a pinned external dependency: never copied into this repository.</span><span lang="es"><a href="https://github.com/zehnm/aoostar-rs">asterctl</a>, de Markus Zehnder, habla el protocolo de la pantalla, obtenido por ingeniería inversa. Es una dependencia externa fijada: nunca se copia en este repositorio.</span></p>
+    <div class="tablebox">
+      <table>
+        <thead><tr><th><span lang="en">Component</span><span lang="es">Componente</span></th><th><span lang="en">License</span><span lang="es">Licencia</span></th><th><span lang="en">How it is used</span><span lang="es">Cómo se usa</span></th></tr></thead>
+        <tbody>
+          <tr><td>aoostar-lcd-cards</td><td>MIT</td><td><span lang="en">This project.</span><span lang="es">Este proyecto.</span></td></tr>
+          <tr><td>asterctl v0.2.0</td><td>MIT OR Apache-2.0</td><td><span lang="en">Pinned in <code>asterctl.version</code> (commit <code>078dc267</code>, release SHA-256 <code>d29c1d9b…</code>). Installed by <code>scripts/install-asterctl.sh</code> or the Dockerfile; license texts travel with the binary. CI checks the tag weekly.</span><span lang="es">Fijado en <code>asterctl.version</code> (commit <code>078dc267</code>, SHA-256 del release <code>d29c1d9b…</code>). Lo instala <code>scripts/install-asterctl.sh</code> o el Dockerfile; los textos de licencia van junto al binario. CI revisa el tag cada semana.</span></td></tr>
+          <tr><td>DejaVu Sans / Sans Mono Bold</td><td>Bitstream Vera + Arev</td><td><span lang="en">Bundled fonts, unmodified, license in the package.</span><span lang="es">Fuentes incluidas, sin modificar, con su licencia en el paquete.</span></td></tr>
+          <tr><td>Pillow · PyYAML · psutil</td><td>MIT-CMU · MIT · BSD-3</td><td><span lang="en">Installed by pip.</span><span lang="es">Las instala pip.</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="note"><span lang="en">The LCD protocol is undocumented by the manufacturer; asterctl's author warns that a wrong command can hang the display until it is power-cycled. This project has been tested without hardware (previews, <code>asterctl --simulate</code>); sending to a real panel must be confirmed on the device.</span><span lang="es">El fabricante no documenta el protocolo de la pantalla; el autor de asterctl advierte que un comando incorrecto puede colgarla hasta apagarla y encenderla. Este proyecto se probó sin hardware (vistas previas, <code>asterctl --simulate</code>); el envío a una pantalla real hay que confirmarlo en el equipo.</span></div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span lang="en">MIT License. AOOSTAR, WTR MAX and GEM12+ PRO are names of their respective owners; this project is independent and not affiliated with them.</span>
+    <span lang="es">Licencia MIT. AOOSTAR, WTR MAX y GEM12+ PRO son nombres de sus respectivos dueños; este proyecto es independiente y no está afiliado a ellos.</span>
+  </div>
+</footer>
+
+<script>
+(function () {
+  var root = document.documentElement;
+  function setLang(lang) {
+    root.setAttribute("data-lang", lang);
+    root.setAttribute("lang", lang);
+    document.querySelectorAll("[data-set-lang]").forEach(function (b) {
+      b.setAttribute("aria-pressed", String(b.getAttribute("data-set-lang") === lang));
+    });
+    try { localStorage.setItem("aoostar-lcd-lang", lang); } catch (e) {}
+  }
+  var saved = null;
+  try { saved = localStorage.getItem("aoostar-lcd-lang"); } catch (e) {}
+  setLang(saved || ((navigator.language || "en").toLowerCase().indexOf("es") === 0 ? "es" : "en"));
+  document.querySelectorAll("[data-set-lang]").forEach(function (b) {
+    b.addEventListener("click", function () { setLang(b.getAttribute("data-set-lang")); });
+  });
+
+  // Rotation of the simulated panel.
+  var shots = document.querySelectorAll("#screen img");
+  var current = 0;
+  var still = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (!still && shots.length > 1) {
+    setInterval(function () {
+      shots[current].classList.remove("on");
+      current = (current + 1) % shots.length;
+      shots[current].classList.add("on");
+    }, 3200);
+  }
+
+  // Install tabs.
+  var tabs = document.querySelectorAll("[data-tab]");
+  tabs.forEach(function (tab) {
+    tab.addEventListener("click", function () {
+      tabs.forEach(function (t) { t.setAttribute("aria-selected", String(t === tab)); });
+      document.querySelectorAll("[data-panel]").forEach(function (p) {
+        p.hidden = p.getAttribute("data-panel") !== tab.getAttribute("data-tab");
+      });
+    });
+  });
+})();
+</script>
+</body>
+</html>
