@@ -188,6 +188,7 @@ def main(argv: list[str] | None = None) -> int:
     logging.basicConfig(
         level=args.log_level, format="%(asctime)s %(levelname)s %(name)s: %(message)s"
     )
+    logging.getLogger("PIL").setLevel(logging.INFO)  # Pillow's DEBUG output is noise here
     try:
         return args.func(args)
     except ConfigError as exc:

@@ -57,6 +57,7 @@ class AsterctlSink(Sink):
 
     def show(self, image: Image.Image) -> bool:
         image.save(self.frame, format="PNG")
+        started = time.monotonic()
         try:
             self.asterctl.send_image(self.frame)
         except AsterctlError as exc:
@@ -66,6 +67,7 @@ class AsterctlSink(Sink):
                 log.error("%s", exc)
                 self._last_error = (str(exc), now)
             return False
+        log.debug("frame sent in %.1f s", time.monotonic() - started)
         return True
 
     def close(self) -> None:
