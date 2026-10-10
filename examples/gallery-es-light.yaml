@@ -1,0 +1,15 @@
+# Same cards in Spanish with the light theme (docs/img/es-light/):
+#   aoostar-lcd preview -c examples/gallery-es-light.yaml --out docs/img/es-light --at 2026-01-15T10:24
+language: es
+display:
+  backend: none
+theme:
+  preset: light
+cards:
+  - {type: cpu}
+  - {type: network}
+  - type: storage
+    volumes:
+      - {zfs: tank, label: Datos}
+      - {mount: /, label: Sistema}
+  - {type: clock}

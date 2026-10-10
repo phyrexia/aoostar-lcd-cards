@@ -1,0 +1,81 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "17 5 * * 1"   # weekly: notice if the pinned asterctl tag moves or disappears
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: lint + tests (Python ${{ matrix.python }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install
+        run: python -m pip install -e ".[dev]"
+      - name: Ruff
+        run: |
+          ruff check .
+          ruff format --check .
+      - name: Pytest (no hardware needed)
+        run: python -m pytest -q
+
+  asterctl-pin:
+    name: asterctl pin (tag, commit, checksum)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Pinned tag exists and points to the pinned commit
+        run: |
+          eval "$(sh scripts/install-asterctl.sh --print-pin)"
+          echo "repo=$repo tag=$tag commit=$commit"
+          refs=$(git ls-remote "$repo" "refs/tags/$tag" "refs/tags/$tag^{}")
+          echo "$refs"
+          [ -n "$refs" ] || { echo "::error::tag $tag not found in $repo"; exit 1; }
+          # Annotated tags list the commit on the ^{} line; lightweight tags on the plain one.
+          resolved=$(echo "$refs" | awk '/\^\{\}$/ {print $1}')
+          [ -n "$resolved" ] || resolved=$(echo "$refs" | awk '{print $1}' | head -n 1)
+          [ "$resolved" = "$commit" ] || {
+            echo "::error::tag $tag points to $resolved, asterctl.version pins $commit"; exit 1; }
+      - name: Release archive matches the pinned SHA-256 and runs (no hardware)
+        run: |
+          sh scripts/install-asterctl.sh --from release --prefix "$RUNNER_TEMP/asterctl"
+          "$RUNNER_TEMP/asterctl/bin/asterctl" --version
+          # Idempotent: a second run must not download again.
+          sh scripts/install-asterctl.sh --from release --prefix "$RUNNER_TEMP/asterctl" 2>&1 \
+            | grep "already installed"
+      - name: asterctl --simulate accepts a rendered frame
+        run: |
+          python -m pip install .
+          aoostar-lcd preview -c examples/gallery.yaml --png "$RUNNER_TEMP/frame.png" --card cpu
+          timeout 60 "$RUNNER_TEMP/asterctl/bin/asterctl" --simulate --image "$RUNNER_TEMP/frame.png"
+
+  docker:
+    name: docker build (asterctl from ${{ matrix.source }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        source: [release, source]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build image
+        run: docker build --build-arg ASTERCTL_SOURCE=${{ matrix.source }} -t aoostar-lcd:ci .
+      - name: Smoke test (no hardware)
+        run: |
+          docker run --rm aoostar-lcd:ci --version
+          docker run --rm --entrypoint asterctl aoostar-lcd:ci --version
+          docker run --rm -v "$PWD/examples:/examples:ro" --tmpfs /out:uid=10001 aoostar-lcd:ci \
+            preview -c /examples/gallery.yaml --out /out

@@ -1,0 +1,60 @@
+# Every card type, used to generate docs/img/ with synthetic data:
+#   aoostar-lcd preview -c examples/gallery.yaml --out docs/img --at 2026-01-15T10:24
+# Paths are relative to this folder.
+language: en
+display:
+  backend: none
+cards:
+  - {type: cpu, id: cpu}
+  - {type: memory, id: memory}
+  - {type: network, id: network}
+  - type: network
+    id: network-split
+    mode: split
+    interfaces: [eth0, eth1, eth2, eth3]
+    labels: {eth0: LAN, eth1: WAN, eth2: "10G-A", eth3: "10G-B"}
+  - type: temperature
+    id: temperature
+    sensors:
+      - {label: CPU, chip: k10temp, warn: 80, crit: 90}
+      - {label: NVMe, chip: nvme, warn: 60, crit: 70}
+      - {label: HDD, smart: rotational, warn: 45, crit: 50}
+  - type: storage
+    id: storage
+    volumes:
+      - {zfs: tank, label: tank}
+  - type: storage
+    id: storage-rows
+    volumes:
+      - {zfs: tank, label: Data}
+      - {mount: /, label: System}
+      - {zfs: backup, label: Backup}
+  - {type: clock, id: clock}
+  - {type: uptime, id: uptime}
+  - type: custom
+    id: custom
+    command: ["/usr/local/bin/backup-status", "--json"]
+  - type: custom
+    id: custom-fields
+    title: UPS
+    file: /var/lib/ups/status.json
+    fields:
+      - {label: Battery, key: battery.charge, unit: "%", decimals: 0}
+      - {label: Load, key: ups.load, unit: "%", decimals: 0, warn: 70, crit: 90}
+      - {label: Status, key: ups.status}
+      - {label: Runtime, key: battery.runtime, unit: min, decimals: 1}
+  - type: image
+    id: image-logo
+    path: images/logo.png
+    background: "#101218"
+  - type: image
+    id: image-cover
+    path: images/landscape.png
+    mode: cover
+  - type: plugin
+    id: plugin-top
+    plugin: plugins/top_processes.py:TopProcessesCard
+  - type: plugin
+    id: plugin-hello
+    plugin: plugins/hello_card.py:HelloCard
+    greeting: Hello
