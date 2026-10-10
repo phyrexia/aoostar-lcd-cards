@@ -1,0 +1,100 @@
+# aoostar-lcd-cards — example configuration.
+# Copy it to /etc/aoostar-lcd/config.yaml and edit. Validate with:
+#   aoostar-lcd check -c /etc/aoostar-lcd/config.yaml
+# Relative paths are resolved from the folder that contains this file.
+
+language: en              # en | es  (words drawn on the cards)
+
+display:
+  backend: asterctl       # asterctl = the LCD | png = write latest.png | none
+  device: /dev/ttyACM0    # serial device of the panel; or use `usb: "416:90A1"`;
+                          # leave both out to let asterctl find the default USB id
+  asterctl: asterctl      # binary name in PATH or absolute path
+  timeout: 20             # seconds before an asterctl call is abandoned
+  simulate: false         # true = asterctl --simulate (no hardware is touched)
+  width: 960              # output size; cards are designed for 960x376 and scaled
+  height: 376
+  frame_interval: 5       # seconds between redraws of the visible card (sent only if it changed)
+  png_dir: frames         # only for backend: png
+
+collector:
+  interval: 5             # seconds between measurements (1-60)
+  state_file: /run/aoostar-lcd/state.json         # written by `collect`, read by `display`
+  history_file: /var/lib/aoostar-lcd/history.json # keeps the 3 h charts across restarts
+  max_age: 30             # older state => the panel shows NO DATA
+
+rotation:
+  default_duration: 8     # seconds per card unless the card sets `duration`
+  page_dots: true
+  alert_banner: true      # red banner (e.g. a degraded ZFS pool) on top of every card
+
+theme:
+  preset: dark            # dark | light
+  colors: {}              # override any of: background text muted dim track grid ok warn
+                          # crit rx tx accent, e.g. {rx: "#3cc8ff", tx: [255, 140, 40]}
+  fonts: {}               # {sans: /path/Bold.ttf, mono: /path/MonoBold.ttf}; DejaVu by default
+
+# Cards rotate in this order. Common keys for every card:
+#   type, id (default: the type), title, duration, enabled, refresh (seconds between collects)
+cards:
+  - type: cpu
+    duration: 8
+    temperature_chip: auto        # k10temp (AMD), coretemp (Intel), ... auto tries the usual ones
+    history_minutes: 180          # 0 = no chart; bars of bucket_seconds each
+    bucket_seconds: 300
+    warn: 80                      # % load, colors the value and the bar
+    crit: 90
+
+  - type: memory
+    units: iec                    # iec = GiB, si = GB
+    zfs_arc: auto                 # show the ZFS ARC size when ZFS is present
+
+  - type: network
+    interfaces: auto              # physical NICs; or a list: [enp1s0, enp2s0]
+    mode: aggregate               # aggregate = one chart with the sum | split = one per NIC (max 4)
+    units: bits                   # bits = Mbit/s | bytes = MB/s
+    history_minutes: 180
+    min_scale: 10                 # lowest full scale (10 Mbit/s) so idle noise stays small
+
+  - type: temperature
+    units: celsius                # celsius | fahrenheit (thresholds stay in °C)
+    sensors:
+      - {label: CPU, chip: k10temp, warn: 80, crit: 90}
+      - {label: NVMe, chip: nvme, warn: 60, crit: 70}
+      - {label: HDD, smart: rotational, warn: 45, crit: 50}   # needs smartctl and root
+    # Without `sensors` the card lists every chip it finds.
+
+  - type: storage
+    units: si                     # si = TB (how disks are sold), iec = TiB
+    volumes:
+      - {zfs: tank, label: Data}  # a ZFS pool: usable space and health
+      - {mount: /, label: System} # any mount point
+
+  - type: clock
+    time_format: "%H:%M"
+    date_format: "%A %d %B %Y"
+    timezone: null                # e.g. "Europe/Madrid"; null = system time zone
+    duration: 5
+
+  - type: uptime
+    enabled: false
+
+  # Show a command's output (no shell; runs in the collector every `refresh` seconds).
+  - type: custom
+    title: SESSIONS
+    command: ["sh", "-c", "who | wc -l"]
+    refresh: 60
+    enabled: false
+
+  # Your own logo or pictures: a file or a folder (re-read on every pass).
+  - type: image
+    path: /etc/aoostar-lcd/images
+    mode: contain                 # contain | cover | fit-width
+    background: "#000000"
+    duration: 6
+    enabled: false
+
+  # A card written in Python (see docs/CUSTOM_CARDS.md and examples/plugins/):
+  # - type: plugin
+  #   plugin: /etc/aoostar-lcd/plugins/top_processes.py:TopProcessesCard
+  #   count: 4
